@@ -31,20 +31,39 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        const reviewCollection= client.db('petData').collection('reviews');
-        const petCollection= client.db('petData').collection('pets');
+        const reviewCollection = client.db('petData').collection('reviews');
+        const petCollection = client.db('petData').collection('pets');
 
 
 
 
 
         // pets collection
-        app.post('/pet',async(req,res)=>{
+        app.post('/pet', async (req, res) => {
             const petItem = req.body;
             const result = await petCollection.insertOne(petItem);
             res.send(result);
         })
 
+
+        app.get('/pets', async (req, res) => {
+            const page = parseInt(req.query.page) || 1; // Current page
+            const limit = parseInt(req.query.limit) || 10; // Items per page
+            const skip = (page - 1) * limit;
+
+            const pets = await petCollection
+                .find({ adopted: false })
+                .sort({ dateAdded: -1 })
+                .skip(skip)
+                .limit(limit)
+                .toArray();
+
+
+            const totalPets = await petCollection.countDocuments({ adopted: false });
+            const hasMore = skip + pets.length < totalPets;
+
+            res.send({ pets, hasMore });
+        })
 
 
 
