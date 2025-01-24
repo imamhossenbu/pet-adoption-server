@@ -351,7 +351,7 @@ async function run() {
 
         // payment intent
 
-        app.post('/create-payment-intent', async (req, res) => {
+        app.post('/create-payment-intent',verifyToken, async (req, res) => {
             const { donation } = req.body;
             const amount = parseInt(donation * 100);
 
