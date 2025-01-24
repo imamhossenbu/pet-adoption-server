@@ -476,8 +476,8 @@ async function run() {
                     role: 'admin'
                 }
             };
-            const result = await userCollection.updateOne(query, update);
-            res.send(result);
+            const updatedData = await userCollection.updateOne(query, update);
+            res.send(updatedData);
         })
 
 
