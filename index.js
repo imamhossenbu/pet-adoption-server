@@ -490,8 +490,8 @@ async function run() {
                     isBanned: isBanned
                 }
             }
-            const result = await userCollection.updateOne(query, updated);
-            res.send(result);
+            const res = await userCollection.updateOne(query, updated);
+            res.send(res);
         })
 
 
