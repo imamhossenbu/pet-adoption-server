@@ -255,7 +255,7 @@ async function run() {
             const query = search ? { petName: { $regex: search, $options: 'i' } } : {};
             const donations = await campaignCollection
                 .find(query)
-                .sort({ createdAt: -1 })  // Sorting by latest first
+                .sort({ createdAt: -1 })  
                 .skip((page - 1) * limit)
                 .limit(Number(limit))
                 .toArray();
@@ -490,8 +490,8 @@ async function run() {
                     isBanned: isBanned
                 }
             }
-            const res = await userCollection.updateOne(query, updated);
-            res.send(res);
+            const result = await userCollection.updateOne(query, updated);
+            res.send(result);
         })
 
 
