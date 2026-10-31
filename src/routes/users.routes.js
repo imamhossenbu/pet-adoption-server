@@ -150,4 +150,32 @@ router.get('/users/email/:email', async (req, res) => {
     }
 });
 
+// Update user profile details
+router.patch('/users/profile/:email', verifyToken, async (req, res) => {
+    try {
+        const email = req.params.email;
+        if (req.user?.email && req.user.email !== email) {
+            return res.status(403).send({ message: 'Forbidden access' });
+        }
+        const { userCollection } = getCollections();
+        const { name, phone, address, photoURL, bio, occupation } = req.body;
+        const query = { email: email };
+        const update = {
+            $set: {
+                ...(name !== undefined && { name }),
+                ...(phone !== undefined && { phone }),
+                ...(address !== undefined && { address }),
+                ...(photoURL !== undefined && { photoURL, image: photoURL }),
+                ...(bio !== undefined && { bio }),
+                ...(occupation !== undefined && { occupation }),
+                updatedAt: new Date().toISOString()
+            }
+        };
+        const result = await userCollection.updateOne(query, update, { upsert: true });
+        res.send(result);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
+
 module.exports = router;
