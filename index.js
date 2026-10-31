@@ -38,6 +38,8 @@ async function run() {
         const campaignCollection = client.db('petData').collection('campaigns');
         const paymentCollection = client.db('petData').collection('payments');
         const userCollection = client.db('petData').collection('users');
+        const faqCollection = client.db('petData').collection('faqs');
+        const categoryCollection = client.db('petData').collection('categories');
 
 
 
@@ -528,6 +530,205 @@ async function run() {
             } catch (err) {
                 console.error("Stats fetch error:", err);
                 res.status(500).send({ error: "Failed to fetch platform stats" });
+            }
+        });
+
+        // Get all adoptions for admin
+        app.get('/all-adoptions', verifyToken, async (req, res) => {
+            try {
+                const result = await adoptionCollection.find().sort({ _id: -1 }).toArray();
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        // Update adoption status (accept / reject)
+        app.patch('/adoptions/status/:id', verifyToken, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const { status, petId } = req.body;
+                const filter = { _id: new ObjectId(id) };
+                const update = { $set: { status: status } };
+                const result = await adoptionCollection.updateOne(filter, update);
+
+                if (status === 'accepted' && petId) {
+                    await petCollection.updateOne(
+                        { _id: new ObjectId(petId) },
+                        { $set: { adopted: true } }
+                    );
+                }
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        // Delete user (admin)
+        app.delete('/users/:id', verifyToken, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await userCollection.deleteOne({ _id: new ObjectId(id) });
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        // Update user role (admin / user)
+        app.patch('/users/role/:id', verifyToken, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const { role } = req.body;
+                const result = await userCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { role: role } }
+                );
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        // User personal stats
+        app.get('/user-stats/:email', verifyToken, async (req, res) => {
+            try {
+                const email = req.params.email;
+                const addedPets = await petCollection.countDocuments({ userEmail: email });
+                const adoptedPets = await petCollection.countDocuments({ userEmail: email, adopted: true });
+                const myCampaigns = await campaignCollection.countDocuments({ createdBy: email });
+                const myDonationsList = await paymentCollection.find({ email: email }).toArray();
+                const totalDonated = myDonationsList.reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
+                const myRequests = await adoptionCollection.countDocuments({ email: email });
+
+                res.send({
+                    addedPets: addedPets || 0,
+                    adoptedPets: adoptedPets || 0,
+                    myCampaigns: myCampaigns || 0,
+                    myDonationsCount: myDonationsList.length || 0,
+                    totalDonated: Math.round(totalDonated) || 0,
+                    myRequests: myRequests || 0
+                });
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        // Dynamic FAQs
+        app.get('/faqs', async (req, res) => {
+            try {
+                let faqs = await faqCollection.find().toArray();
+                if (faqs.length === 0) {
+                    const initialFaqs = [
+                        {
+                            question: "How does the pet adoption process work at PeddyCare?",
+                            answer: "Browse our pet listings, select a pet, review their details, and submit an adoption application. Our team reviews your request within 24-48 hours. Once approved, you can complete the adoption and receive your official certificate.",
+                            category: "Adoption",
+                            active: true,
+                            order: 1
+                        },
+                        {
+                            question: "Are all pets vaccinated, dewormed, and vet-checked?",
+                            answer: "Yes! Every single pet listed on PeddyCare goes through medical screening, up-to-date vaccinations, deworming, and health certification before being cleared for adoption.",
+                            category: "Health & Safety",
+                            active: true,
+                            order: 2
+                        },
+                        {
+                            question: "Can I donate to multiple emergency medical campaigns?",
+                            answer: "Absolutely! You can donate to any active campaign using secure Stripe checkout. 100% of campaign donations go directly toward the pet's urgent medical procedures.",
+                            category: "Donations",
+                            active: true,
+                            order: 3
+                        },
+                        {
+                            question: "What if the adopted pet doesn't adjust well to my home?",
+                            answer: "We offer a 30-day Safe Return Guarantee and free behavioral consultation with our certified trainers to support you and your new pet during the transition.",
+                            category: "Support",
+                            active: true,
+                            order: 4
+                        }
+                    ];
+                    await faqCollection.insertMany(initialFaqs);
+                    faqs = initialFaqs;
+                }
+                res.send(faqs);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        app.post('/faqs', verifyToken, async (req, res) => {
+            try {
+                const faq = req.body;
+                const result = await faqCollection.insertOne(faq);
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        app.patch('/faqs/:id', verifyToken, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const updateData = req.body;
+                const result = await faqCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updateData }
+                );
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        app.delete('/faqs/:id', verifyToken, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await faqCollection.deleteOne({ _id: new ObjectId(id) });
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        // Dynamic Categories
+        app.get('/categories', async (req, res) => {
+            try {
+                let categories = await categoryCollection.find().toArray();
+                if (categories.length === 0) {
+                    const initialCats = [
+                        { category: "Cat", label: "Cats", icon: "🐈", description: "Playful & affectionate felines" },
+                        { category: "Dog", label: "Dogs", icon: "🐕", description: "Loyal & energetic companions" },
+                        { category: "Rabbit", label: "Rabbits", icon: "🐇", description: "Gentle & curious bunnies" },
+                        { category: "Bird", label: "Birds", icon: "🦜", description: "Cheerful & musical feathered friends" }
+                    ];
+                    await categoryCollection.insertMany(initialCats);
+                    categories = initialCats;
+                }
+                res.send(categories);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        app.post('/categories', verifyToken, async (req, res) => {
+            try {
+                const cat = req.body;
+                const result = await categoryCollection.insertOne(cat);
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
+            }
+        });
+
+        app.delete('/categories/:id', verifyToken, async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await categoryCollection.deleteOne({ _id: new ObjectId(id) });
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: err.message });
             }
         });
 
