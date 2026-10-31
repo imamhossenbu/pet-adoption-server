@@ -3,12 +3,17 @@ const router = express.Router();
 const { getCollections, ObjectId } = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 
-// Submit Adoption Request
-router.post('/adoptions', verifyToken, async (req, res) => {
+// Submit Adoption Request (supports both /adoptions and /adoption)
+router.post(['/adoptions', '/adoption'], verifyToken, async (req, res) => {
     try {
         const { adoptionCollection } = getCollections();
         const adoptionData = req.body;
-        const result = await adoptionCollection.insertOne(adoptionData);
+        const payload = {
+            ...adoptionData,
+            status: adoptionData.status || 'pending',
+            createdAt: adoptionData.createdAt || new Date().toISOString()
+        };
+        const result = await adoptionCollection.insertOne(payload);
         res.send(result);
     } catch (err) {
         res.status(500).send({ error: err.message });
