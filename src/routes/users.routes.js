@@ -73,8 +73,36 @@ router.patch('/users/admin/ban/:id', verifyToken, async (req, res) => {
         const id = req.params.id;
         const { isBanned } = req.body;
         const query = { _id: new ObjectId(id) };
-        const updated = { $set: { isBanned: isBanned } };
+        const updated = {
+            $set: {
+                isBanned: isBanned,
+                status: isBanned ? 'banned' : 'active',
+                statusUpdatedAt: new Date().toISOString()
+            }
+        };
         const result = await userCollection.updateOne(query, updated);
+        res.send(result);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
+
+// Update user status (active / suspended / banned)
+router.patch('/users/status/:id', verifyToken, async (req, res) => {
+    try {
+        const { userCollection } = getCollections();
+        const id = req.params.id;
+        const { status } = req.body;
+        const query = { _id: new ObjectId(id) };
+        const isBanned = status === 'banned';
+        const update = {
+            $set: {
+                status: status || 'active',
+                isBanned: isBanned,
+                statusUpdatedAt: new Date().toISOString()
+            }
+        };
+        const result = await userCollection.updateOne(query, update);
         res.send(result);
     } catch (err) {
         res.status(500).send({ error: err.message });

@@ -32,6 +32,8 @@ async function connectDB() {
             faqCollection: db.collection('faqs'),
             categoryCollection: db.collection('categories'),
             otpCollection: db.collection('otps'),
+            teamCollection: db.collection('team'),
+            newsletterCollection: db.collection('subscribers'),
         };
 
         // Create index for OTP expiry (expires after 5 minutes)

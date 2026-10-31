@@ -12,6 +12,8 @@ const usersRoutes = require('./src/routes/users.routes');
 const faqsRoutes = require('./src/routes/faqs.routes');
 const categoriesRoutes = require('./src/routes/categories.routes');
 const statsRoutes = require('./src/routes/stats.routes');
+const teamRoutes = require('./src/routes/team.routes');
+const newsletterRoutes = require('./src/routes/newsletter.routes');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -34,6 +36,8 @@ async function startServer() {
         app.use('/', faqsRoutes);
         app.use('/', categoriesRoutes);
         app.use('/', statsRoutes);
+        app.use('/', teamRoutes);
+        app.use('/', newsletterRoutes);
 
         // Root check
         app.get('/', (req, res) => {
