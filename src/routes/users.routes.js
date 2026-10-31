@@ -150,32 +150,58 @@ router.get('/users/email/:email', async (req, res) => {
     }
 });
 
-// Update user profile details
-router.patch('/users/profile/:email', verifyToken, async (req, res) => {
+// Update user profile details (Supports both /users/profile/:email and /users/profile)
+const handleProfileUpdate = async (req, res) => {
     try {
-        const email = req.params.email;
-        if (req.user?.email && req.user.email !== email) {
+        const rawEmail = req.params.email || req.body.email || req.user?.email;
+        if (!rawEmail) {
+            return res.status(400).send({ message: 'Email identifier is required' });
+        }
+
+        const email = rawEmail.toLowerCase().trim();
+        const authenticatedEmail = req.user?.email?.toLowerCase()?.trim();
+
+        if (authenticatedEmail && email !== authenticatedEmail) {
             return res.status(403).send({ message: 'Forbidden access' });
         }
+
         const { userCollection } = getCollections();
-        const { name, phone, address, photoURL, bio, occupation } = req.body;
-        const query = { email: email };
+        const { name, phone, address, city, location, photoURL, bio, occupation } = req.body;
+
+        const resolvedAddress = address !== undefined ? address : city;
+        const resolvedCity = city !== undefined ? city : address;
+
+        const query = { email: { $regex: new RegExp(`^${email}$`, 'i') } };
         const update = {
             $set: {
+                email: email,
                 ...(name !== undefined && { name }),
                 ...(phone !== undefined && { phone }),
-                ...(address !== undefined && { address }),
+                ...(resolvedAddress !== undefined && {
+                    address: resolvedAddress,
+                    city: resolvedCity,
+                    location: resolvedAddress
+                }),
                 ...(photoURL !== undefined && { photoURL, image: photoURL }),
                 ...(bio !== undefined && { bio }),
                 ...(occupation !== undefined && { occupation }),
                 updatedAt: new Date().toISOString()
+            },
+            $setOnInsert: {
+                createdAt: new Date().toISOString(),
+                role: 'user',
+                status: 'active'
             }
         };
+
         const result = await userCollection.updateOne(query, update, { upsert: true });
         res.send(result);
     } catch (err) {
         res.status(500).send({ error: err.message });
     }
-});
+};
+
+router.patch('/users/profile/:email', verifyToken, handleProfileUpdate);
+router.patch('/users/profile', verifyToken, handleProfileUpdate);
 
 module.exports = router;
