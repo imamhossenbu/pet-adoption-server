@@ -7,7 +7,7 @@ Built with **Node.js**, **Express**, **MongoDB Atlas**, **Stripe**, and **Nodema
 ---
 
 ## 🚀 Live API Base URL
-- **Production Server:** [https://assignment-12-server-pink.vercel.app](https://assignment-12-server-pink.vercel.app)
+- **Production Server:** [https://pet-adoption-server-olive.vercel.app](https://pet-adoption-server-olive.vercel.app)
 - **Local Dev Server:** `http://localhost:5000`
 
 ---
